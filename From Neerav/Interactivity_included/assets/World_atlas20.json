@@ -1,0 +1,59 @@
+﻿{"frames": {
+
+"Bitmap 1":
+{
+	"frame": {"x":0,"y":2164,"w":1307,"h":1543},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1307,"h":1543},
+	"sourceSize": {"w":1307,"h":1543}
+},
+"Color_BG_02c_Resized_Optimized.psd Asset/Clouds/Assets/cloud":
+{
+	"frame": {"x":1922,"y":1082,"w":1712,"h":915},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1712,"h":915},
+	"sourceSize": {"w":1712,"h":915}
+},
+"Color_BG_02c_Resized_Optimized.psd Asset/Clouds/Assets/cloud_4":
+{
+	"frame": {"x":1922,"y":1997,"w":1712,"h":915},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1712,"h":915},
+	"sourceSize": {"w":1712,"h":915}
+},
+"Glow.png":
+{
+	"frame": {"x":0,"y":1082,"w":1922,"h":1082},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1922,"h":1082},
+	"sourceSize": {"w":1922,"h":1082}
+},
+"Glow_Apple.png":
+{
+	"frame": {"x":0,"y":0,"w":1922,"h":1082},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1922,"h":1082},
+	"sourceSize": {"w":1922,"h":1082}
+},
+"Glow_vase.png":
+{
+	"frame": {"x":1922,"y":0,"w":1922,"h":1082},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1922,"h":1082},
+	"sourceSize": {"w":1922,"h":1082}
+}},
+"meta": {
+	"app": "Adobe Animate",
+	"version": "16.5.0.70",
+	"image": "World_atlas20.png",
+	"format": "RGBA8888",
+	"size": {"w":4096,"h":4096},
+	"scale": "1"
+}
+}

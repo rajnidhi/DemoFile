@@ -1,0 +1,27 @@
+﻿{"frames": {
+
+"Bitmap 2":
+{
+	"frame": {"x":0,"y":0,"w":4096,"h":1902},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4096,"h":1902},
+	"sourceSize": {"w":4096,"h":1902}
+},
+"Bitmap 6":
+{
+	"frame": {"x":0,"y":1902,"w":4096,"h":1677},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4096,"h":1677},
+	"sourceSize": {"w":4096,"h":1677}
+}},
+"meta": {
+	"app": "Adobe Animate",
+	"version": "16.5.0.70",
+	"image": "World_atlas18.png",
+	"format": "RGBA8888",
+	"size": {"w":4096,"h":4096},
+	"scale": "1"
+}
+}
