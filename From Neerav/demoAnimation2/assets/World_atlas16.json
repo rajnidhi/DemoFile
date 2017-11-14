@@ -1,0 +1,19 @@
+﻿{"frames": {
+
+"Bitmap 4":
+{
+	"frame": {"x":0,"y":0,"w":4096,"h":2205},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4096,"h":2205},
+	"sourceSize": {"w":4096,"h":2205}
+}},
+"meta": {
+	"app": "Adobe Animate",
+	"version": "18.0.0.104",
+	"image": "World_atlas16.png",
+	"format": "RGBA8888",
+	"size": {"w":4096,"h":4096},
+	"scale": "1"
+}
+}
