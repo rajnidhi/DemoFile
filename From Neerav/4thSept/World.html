@@ -39,8 +39,8 @@
     <script src="js/third-party/wglu/wglu-url.js"></script>
     <script>
         // Dynamically turn the polyfill on if requested by the query args.
-        //if (WGLUUrl.getBool('polyfill', false)) { InitializeWebVRPolyfill(); }
-        InitializeWebVRPolyfill();
+        if (WGLUUrl.getBool('polyfill', false)) { InitializeWebVRPolyfill(); }
+        //InitializeWebVRPolyfill();
     </script>
     <!-- End sample polyfill enabling logic -->
 
