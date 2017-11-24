@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>VR_sample_big</title>
+    <script src="libs/flwebgl-0.2.min.js"></script>
+		<script src="assets/VR_sample_big_actions.js?1511513217321"></script>
+
+    <style>
+        #webgl-canvas {
+            box-sizing: border-box;
+            height: 100%;
+            left: 0;
+            margin: 0;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+    </style>
+
+    <!-- This entire block in only to facilitate dynamically enabling and
+    disabling the WebVR polyfill, and is not necessary for most WebVR apps.
+    If you want to use the polyfill in your app, just include the js file and
+    everything will work the way you want it to by default. -->
+    <script>
+        var WebVRConfig = {
+            // Prevents the polyfill from initializing automatically.
+            DEFER_INITIALIZATION: true,
+            // Polyfill optimizations
+            DIRTY_SUBMIT_FRAME_BINDINGS: true,
+            BUFFER_SCALE: 0.75,
+        };
+    </script>
+    <script src="js/third-party/webvr-polyfill.js"></script>
+    <script src="js/third-party/wglu/wglu-url.js"></script>
+    <script>
+        // Dynamically turn the polyfill on if requested by the query args.
+        //if (WGLUUrl.getBool('polyfill', false)) { InitializeWebVRPolyfill(); }
+        InitializeWebVRPolyfill();
+    </script>
+    <!-- End sample polyfill enabling logic -->
+
+    <script src="js/third-party/gl-matrix-min.js"></script>
+    <script src="js/third-party/wglu/wglu-program.js"></script>
+    <script src="js/third-party/wglu/wglu-stats.js"></script>
+    <script src="js/vr-panorama.js"></script>
+    <script src="js/vr-audio-panner.js"></script>
+    <script src="js/vr-samples-util.js"></script>
+    <script type="text/javascript" src="js/glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="js/webgl-utils.js"></script>
+    <script type="text/javascript" src="js/third-party/clusterfck-0.1.js"></script>
+
+    <script>
+        /* global mat4, vec3, VRPanorama, WGLUStats, VRSamplesUtil */
+        var gl = null;
+        var panorama = null;
+        var stats = null;
+        var vrDisplay = null;
+        var projectionMat = mat4.create();
+        var poseMat = mat4.create();
+        var viewMat = mat4.create();
+        var vrPresentButton = null;
+        var webglCanvas = null;
+        var standingPosition = vec3.create();
+        var depth = 0;
+        var frameData = null;
+        var nearDepth = 0.1;
+        var farDepth = 4096*2;
+        var cameraInvMatrix = null;
+        var idleViewMatrix = null;
+
+        	        var PLAYER_HEIGHT = 1.65;
+      var isAudioPannerReady = false;
+       var audioFileFormat = 'mp3';
+       var soundFileData = null;
+       soundFileData =      [
+                           ];
+       function initAudio (buffers) {
+       isAudioPannerReady = true;
+       }
+      var getListenerPositionDirection = (function () {
+                                   var tmpPosition = vec3.create();
+                                   var tmpDirection = vec3.create();
+                                   var tmpUp = vec3.create();
+                                   var tmpOrientation = quat.create();
+                                   return function (poseMat) {
+                                   mat4.getTranslation(tmpPosition, poseMat);
+                                   mat4.getRotation(tmpOrientation, poseMat);
+                                   vec3.transformQuat(tmpDirection, [0, 0, -1], tmpOrientation);
+                                   vec3.transformQuat(tmpUp, [0, 1, 0], tmpOrientation);
+                                   vec3.normalize(tmpDirection, tmpDirection);
+                                   return {
+                                   position: tmpPosition,
+                                   direction: tmpDirection,
+                                   up: tmpUp
+                                   };
+                                   };
+                                   })();
+
+
+
+      function initWebGL (preserveDrawingBuffer) {
+        var glAttribs = {
+          alpha: false,
+          preserveDrawingBuffer: preserveDrawingBuffer
+        };
+        var useWebgl2 = WGLUUrl.getBool('webgl2', false);
+        var contextTypes = useWebgl2 ? ["webgl2"] : ["webgl", "experimental-webgl"];
+        for (var i in contextTypes) {
+          gl = webglCanvas.getContext(contextTypes[i], glAttribs);
+          if (gl)
+            break;
+        }
+        if (!gl) {
+          var webglType = (useWebgl2 ? "WebGL 2" : "WebGL")
+          VRSamplesUtil.addError("Your browser does not support " + webglType + ".");
+          return;
+        }
+
+        var enablePerformanceMonitoring = WGLUUrl.getBool(
+            'enablePerformanceMonitoring', false);
+        stats = new WGLUStats(gl, enablePerformanceMonitoring);
+
+        // Wait until we have a WebGL context to resize and start rendering.
+        window.addEventListener("resize", onResize, false);
+        onResize();
+                   // Load sound files and then initiate WebAudio.
+           if(soundFileData != null && soundFileData.length > 0) {
+               var infoElement = VRSamplesUtil.addInfo("Loading audio files...");
+               VRAudioPanner
+               .loadAudioFiles(soundFileData, null)
+               .then(function (buffers) {
+                     VRSamplesUtil.makeToast(infoElement, 2000);
+                     initAudio(buffers);
+                     });
+            }
+
+        window.requestAnimationFrame(onAnimationFrame);
+      }
+
+        function initVR() {
+            "use strict";
+
+            // ================================================================
+            // WebGL and WebAudio scene setup. This code is not WebVR specific.
+            // ================================================================
+
+            // WebGL setup.
+            webglCanvas = document.getElementById("webgl-canvas");
+
+            if (navigator.getVRDisplays) {
+            frameData = new VRFrameData();
+
+            navigator.getVRDisplays().then(function (displays) {
+              if (displays.length > 0) {
+                vrDisplay = displays[displays.length - 1];
+                vrDisplay.depthNear = nearDepth;
+                vrDisplay.depthFar = farDepth;
+
+                initWebGL(vrDisplay.capabilities.hasExternalDisplay);
+
+                if (vrDisplay.stageParameters &&
+                    vrDisplay.stageParameters.sizeX > 0 &&
+                    vrDisplay.stageParameters.sizeZ > 0) {
+                } else {
+                  if (vrDisplay.stageParameters) {
+                    console.log("VRDisplay reported stageParameters, but stage size was 0. Using default size.");
+                  } else {
+                    console.log("VRDisplay did not report stageParameters");
+                  }
+                }
+
+                if (vrDisplay.capabilities.canPresent)
+                  vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
+
+                // For the benefit of automated testing. Safe to ignore.
+                if (vrDisplay.capabilities.canPresent && WGLUUrl.getBool('canvasClickPresents', false))
+                  webglCanvas.addEventListener("click", onVRRequestPresent, false);
+
+                window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
+                window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
+                window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
+              } else {
+                initWebGL(false);
+                console.log("WebVR supported, but no VRDisplays found.");
+              }
+            });
+          } else if (navigator.getVRDevices) {
+            initWebGL(false);
+            console.log("Your browser supports WebVR but not the latest version. See <a href='http://webvr.info'>webvr.info</a> for more info.");
+          } else {
+            initWebGL(false);
+            console.log("Your browser does not support WebVR. See <a href='http://webvr.info'>webvr.info</a> for assistance.");
+          }
+
+        }
+
+        // ================================
+        // WebVR-specific code begins here.
+        // ================================
+
+        function onVRRequestPresent() {
+            vrDisplay.requestPresent([{ source: webglCanvas }]).then(function () {
+            }, function () {
+                console.log("Error : "  + err);
+            });
+        }
+
+        function onVRExitPresent() {
+            if (!vrDisplay.isPresenting)
+              return;
+
+            vrDisplay.exitPresent().then(function () {
+            }, function () {
+              console.log("exitPresent failed.");
+            });
+        }
+
+        function onUp() {
+            vrDisplay.orientation_.z += 0.01
+        }
+
+        function onDown() {
+            console.log("TODO: Handle down");
+        }
+
+        function onVRPresentChange() {
+            onResize();
+
+            if (vrDisplay.isPresenting) {
+                if (vrDisplay.capabilities.hasExternalDisplay) {
+                    VRSamplesUtil.removeButton(vrPresentButton);
+                    vrPresentButton = VRSamplesUtil.addButton("Exit VR", "E", "media/icons/cardboard64.png", onVRExitPresent);
+                }
+            } else {
+                if (vrDisplay.capabilities.hasExternalDisplay) {
+                    VRSamplesUtil.removeButton(vrPresentButton);
+                    vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
+                }
+            }
+        }
+
+        function onResize() {
+            if (vrDisplay && vrDisplay.isPresenting) {
+                var leftEye = vrDisplay.getEyeParameters("left");
+                var rightEye = vrDisplay.getEyeParameters("right");
+
+                webglCanvas.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
+                webglCanvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+            } else {
+                webglCanvas.width = webglCanvas.offsetWidth * window.devicePixelRatio;
+                webglCanvas.height = webglCanvas.offsetHeight * window.devicePixelRatio;
+            }
+        }
+
+        // Get a matrix for the pose that takes into account the stageParameters
+        // if we have them, and otherwise adjusts the position to ensure we're
+        // not stuck in the floor.
+        function getStandingViewMatrix (out, view) {
+            if (vrDisplay.stageParameters) {
+              // If the headset provides stageParameters use the
+              // sittingToStandingTransform to transform the view matrix into a
+              // space where the floor in the center of the users play space is the
+              // origin.
+              mat4.invert(out, vrDisplay.stageParameters.sittingToStandingTransform);
+              mat4.multiply(out, view, out);
+            } else {
+              // Otherwise you'll want to translate the view to compensate for the
+              // scene floor being at Y=0. Ideally this should match the user's
+              // height (you may want to make it configurable). For this demo we'll
+              // just assume all human beings are 1.65 meters (~5.4ft) tall.
+              mat4.identity(out);
+              mat4.translate(out, out, [0, PLAYER_HEIGHT, 0]);
+              mat4.invert(out, out);
+              mat4.multiply(out, view, out);
+            }
+        }
+
+        function renderSceneView (projection, view, pose, skipClear) {
+            // For fun, draw a blue cube where the players head would have been if
+            // we weren't taking the stageParameters into account. It'll start in
+            // the center of the floor.
+            if(skipClear == undefined)
+              skipClear = false;
+            var view1 = mat4.create();
+            view1 = mat4.clone(view);
+            var orientation = pose.orientation;
+            var position = pose.position;
+            if (!orientation) { orientation = [0, 0, 0, 1]; }
+            if (!position) { position = [0, 0, 0]; }
+
+            var stageWidth = player.getStageWidth();
+            var stageHeight = player.getStageHeight();
+
+            depth = stageWidth / 2;
+            var projectionMatrix = new flwebgl.geom.Matrix(projection);
+
+            player.setProjectionMatrix(projectionMatrix);
+            // var preMultiplyMat = mat4.create();
+            // var scaleValue = vec3.create();
+            // var translateValue = vec3.create();
+            // vec3.add(scaleValue, scaleValue, [2, -2, 1]);
+            // vec3.add(translateValue, translateValue, [-stageWidth, stageHeight, -depth]);
+            // mat4.translate(preMultiplyMat,preMultiplyMat,translateValue);
+            // mat4.scale(preMultiplyMat, preMultiplyMat, scaleValue);
+            // mat4.multiply(view1,view1,preMultiplyMat);
+            var viewMatrix = new flwebgl.geom.Matrix(view);
+            if(!idleViewMatrix)
+                idleViewMatrix = viewMatrix.clone();
+            if(cameraInvMatrix != null)
+            {
+                var cameraInvMatrixClone = cameraInvMatrix.clone();
+                // console.log("cameraInvMatrix : " + cameraInvMatrix.toString())
+                viewMatrix = cameraInvMatrixClone.concat(viewMatrix);
+            }
+
+            player.setViewMatrix(viewMatrix);
+            player.playNextFrame(skipClear);        
+        }
+
+        function onAnimationFrame(t) {
+            if (stats == null)
+                return;
+
+            //if(panorama == null)
+            //panorama = new VRPanorama(gl, g_outTexture);
+            // panorama.setTexture(g_outTexture);
+
+            stats.begin();
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            if (vrDisplay) {
+
+                vrDisplay.getFrameData(frameData);
+
+                if (vrDisplay.isPresenting) {
+                    gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
+                    player.setViewport(new flwebgl.geom.Rect(0, 0, webglCanvas.width * 0.5, webglCanvas.height));
+                    getStandingViewMatrix(viewMat, frameData.leftViewMatrix);
+                    renderSceneView(frameData.leftProjectionMatrix, viewMat, frameData.pose);
+
+                    gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
+                    player.setViewport(new flwebgl.geom.Rect(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height, false), true);
+                    getStandingViewMatrix(viewMat, frameData.rightViewMatrix);
+                    renderSceneView(frameData.rightProjectionMatrix, viewMat, frameData.pose, true);
+
+                    vrDisplay.submitFrame(frameData.pose);
+                } else {
+                    gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
+                    player.setViewport(new flwebgl.geom.Rect(0, 0, webglCanvas.width, webglCanvas.height));
+                    mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, nearDepth, farDepth);
+                    getStandingViewMatrix(viewMat, frameData.leftViewMatrix);
+                    renderSceneView(projectionMat, viewMat, frameData.pose);
+                    stats.renderOrtho();
+                }
+            } else {
+                window.requestAnimationFrame(onAnimationFrame);
+
+                // No VRDisplay found.
+                gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
+                mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, nearDepth, farDepth);
+                mat4.identity(viewMat);
+                mat4.translate(viewMat, viewMat, [0, -PLAYER_HEIGHT, 0]);
+
+                stats.renderOrtho();
+            }
+
+            stats.end();
+
+        }
+    </script>
+    <script>
+        var player, result = flwebgl.Player.S_OK;
+        var atlasList = [], content = undefined;
+
+        function loadContent() {
+            getAsset("assets/VR_sample_big.json?1511513217321", function (response) {content = JSON.parse(response); assetLoaded(); });
+				getAsset("assets/VR_sample_big_atlas.json?1511513217321", function (response) { atlasList.push({json:JSON.parse(response), image:"assets/VR_sample_big_atlas.png?1511513217321"}); assetLoaded(); });
+        }
+
+        function assetLoaded() {
+            if (atlasList.length == 1 && content) {
+                var canvas = document.getElementById("webgl-canvas");
+                player = new flwebgl.Player();
+
+                //Create textureatlas object for all the textures which you have
+                var textureAtlasList = [];
+                for (var i = 0; i < atlasList.length; i++) {
+                    textureAtlasList.push(new flwebgl.TextureAtlas(atlasList[i].json, atlasList[i].image));
+                }
+
+                var options = {};
+                options[flwebgl.Player.kOption_CylindricalPlacement] = true;
+                result = player.init(canvas, content, textureAtlasList, handleComplete, options);
+
+                if (result === flwebgl.Player.E_CONTEXT_CREATION_FAILED) {
+                    document.getElementById("err_nowebglsupport").style.display = "block";
+                    return;
+                } else if (result === flwebgl.Player.E_REQUIRED_EXTENSION_NOT_PRESENT) {
+                    document.getElementById("err_extensionnotpresent").style.display = "block";
+                    return;
+                }
+
+                //Resize the canvas and reset the viewport
+                var w = player.getStageWidth();
+                var h = player.getStageHeight();
+                g_cubeTextureSize = h / 4;
+                canvas.width = w;
+                canvas.height = h;
+                // webGLStart();
+                player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));
+
+                
+					if(player.getStage())
+					{
+						player.getStage().addEventListener(flwebgl.events.Event.REMOVED, function(evt){
+							if( evt && evt.getTarget() && evt.getTarget().getName() === "___camera___instance" )
+								player.getStage().setLocalTransform(new flwebgl.geom.Matrix());
+						});
+						player.getStage().addEventListener(flwebgl.events.Event.ADDED, function(evt){
+							if( evt && evt.getTarget() && evt.getTarget().getName() === "___camera___instance" )
+								flwebgl.camera.getMainCamera().attachToObject(evt.getTarget());
+						});
+						player.getStage().addEventListener(flwebgl.events.Event.ENTER_FRAME, function(evt) {
+							var stage = player.getStage();
+							var cameraInstance = flwebgl.camera.getMainCamera();
+							var colorT = cameraInstance.getColorTransform();
+							var stageColorT = stage.getLocalColorTransform();
+							if(!stageColorT.equals(colorT))
+							{
+								stage.setLocalColorTransform(colorT);
+							}
+							cameraInvMatrix = flwebgl.camera.getMainCamera().getCameraMatrix();
+							cameraInvMatrix.invert();
+							var stageWidth = player.getStageWidth();
+							var stageHeight = player.getStageHeight();
+							var depth = stageWidth / (Math.PI);
+							var modelAdjustmentMat = new flwebgl.geom.Matrix();
+							modelAdjustmentMat = modelAdjustmentMat.scale(2,-2,depth/550);
+							modelAdjustmentMat.translate(-stageWidth, stageHeight, -depth);
+							stage.setLocalTransform(modelAdjustmentMat);
+						});
+					}
+            }
+        }
+
+        function getAsset(url, callbk) {
+            if (!window.XMLHttpRequest) {
+                document.getElementById("err_nowebglsupport").style.display = "block";
+                return;
+            }
+
+            var req = new XMLHttpRequest();
+            req.onreadystatechange = function () {
+                if (req.readyState == 4 && req.status == 200)
+                    callbk(req.responseText);
+            };
+            req.open("GET", url, true);
+            req.send();
+        }
+
+        function handleComplete() {
+            if (result === flwebgl.Player.S_OK) {
+              initVR();
+            }
+        }
+
+    </script>
+</head>
+<body onload="loadContent();">
+    <canvas id="webgl-canvas" style="border: none;"></canvas>
+    <div class="error" id="err_nowebglsupport" style="display:none;"><span>Your browser does not support WebGL.</span>&nbsp;<span><a href="http://get.webgl.org">Check WebGL support.</a></span></div>
+    <div class="error" id="err_extensionnotpresent" style="display:none;">A required WebGL extension is not supported by your browser.</div>
+</body>
+</html>

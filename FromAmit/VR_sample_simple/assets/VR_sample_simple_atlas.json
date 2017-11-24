@@ -1,0 +1,75 @@
+﻿{"frames": {
+
+"Bitmap 1":
+{
+	"frame": {"x":0,"y":0,"w":2584,"h":928},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":2584,"h":928},
+	"sourceSize": {"w":2584,"h":928}
+},
+"S_1":
+{
+	"frame": {"x":2584,"y":24,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_2":
+{
+	"frame": {"x":2584,"y":0,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_3":
+{
+	"frame": {"x":2584,"y":4,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_4":
+{
+	"frame": {"x":2584,"y":8,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_5":
+{
+	"frame": {"x":2584,"y":16,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_6":
+{
+	"frame": {"x":2584,"y":20,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+},
+"S_7":
+{
+	"frame": {"x":2584,"y":12,"w":4,"h":4},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":4,"h":4},
+	"sourceSize": {"w":4,"h":4}
+}},
+"meta": {
+	"app": "Adobe Animate",
+	"version": "18.0.0.104",
+	"image": "VR_sample_simple_atlas.png",
+	"format": "RGBA8888",
+	"size": {"w":4096,"h":4096},
+	"scale": "1"
+}
+}
